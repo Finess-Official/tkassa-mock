@@ -1,0 +1,10 @@
+httpServer:
+  publicApiHttpPort: 8081
+
+finess:
+  tkassa:
+    mock:
+      paymentForm:
+        host: localhost
+        port: 8081
+      paymentTransitionStrategy: RANDOM

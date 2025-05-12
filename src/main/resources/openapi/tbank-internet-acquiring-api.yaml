@@ -1,0 +1,1944 @@
+openapi: 3.0.2
+info:
+  version: '1.54'
+  title: Прием платежей
+  contact:
+    url: https://www.tbank.ru/kassa/
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  description: "T-Kassa mock api for internet acquiring"
+servers:
+  - url: https://securepay.tinkoff.ru
+    description: production
+  - url: https://rest-api-test.tinkoff.ru
+    description: test
+  - url: http://localhost:8080
+    description: local
+security: []
+paths:
+  /v2/Init:
+    post:
+      operationId: Init
+      summary: Инициировать платеж
+      description: |
+        Метод инициирует платежную сессию.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Init_FULL'
+            examples:
+              Init_FULL:
+                summary: Пример запроса (FULL)
+                value:
+                  TerminalKey: TinkoffBankTest
+                  Amount: 140000
+                  OrderId: '21090'
+                  Description: Подарочная карта на 1000 рублей
+                  Token: 68711168852240a2f34b6a8b19d2cfbd296c7d2a6dff8b23eda6278985959346
+                  DATA:
+                    Phone: '+71234567890'
+                    Email: a@test.com
+                  Receipt:
+                    Email: a@test.ru
+                    Phone: '+79031234567'
+                    Taxation: osn
+                    Items:
+                      - Name: Наименование товара 1
+                        Price: 10000
+                        Quantity: 1
+                        Amount: 10000
+                        Tax: vat10
+                        Ean13: '303130323930303030630333435'
+                      - Name: Наименование товара 2
+                        Price: 20000
+                        Quantity: 2
+                        Amount: 40000
+                        Tax: vat20
+                      - Name: Наименование товара 3
+                        Price: 30000
+                        Quantity: 3
+                        Amount: 90000
+                        Tax: vat10
+              Init_QR_RECURRENT:
+                summary: Пример рекуррентного платежа по СБП
+                value:
+                  TerminalKey: TinkoffBankTest
+                  Amount: 140000
+                  OrderId: '21090'
+                  Token: c744b9711d978c152fb4546c6cdcec24ebd9870678f9f325a9713ca56d6a6826
+                  Description: Подписка на 1400.00 рублей
+                  CustomerKey: string
+                  Recurrent: 'Y'
+                  PayType: O
+                  Language: ru
+                  NotificationURL: http://example.com
+                  SuccessURL: http://example.com
+                  FailURL: http://example.com
+                  DATA:
+                    QR: true
+                    key: value
+                  Receipt:
+                    Items:
+                      Name: Наименование товара 1
+                      Price: 140000
+                      Quantity: 1
+                      Amount: 140000
+                      PaymentMethod: full_prepayment
+                      PaymentObject: commodity
+                      Tax: vat10
+                      Ean13: '123456789'
+                      AgentData:
+                        AgentSign: paying_agent
+                        OperationName: Позиция чека
+                        Phones: '+790912312398'
+                        ReceiverPhones:
+                          - '+79221210697'
+                          - '+79098561231'
+                      SupplierInfo:
+                        Phones:
+                          - '+79221210697'
+                          - '+79098561231'
+                        Name: OOO Вендор товара
+                        Inn: '7710140679'
+                    FfdVersion: '1.05'
+                    Email: a@test.ru
+                    Phone: '79031234567'
+                    Taxation: osn
+                    Payments:
+                      Cash: 0
+                      Electronic: 140000
+                      AdvancePayment: 0
+                      Credit: 0
+                      Provision: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+              examples:
+                InitResponseExample:
+                  summary: Пример ответа
+                  value:
+                    Success: true
+                    ErrorCode: '0'
+                    TerminalKey: TinkoffBankTest
+                    Status: NEW
+                    PaymentId: '3093639567'
+                    OrderId: '21090'
+                    Amount: 140000
+                    PaymentURL: https://securepay.tinkoff.ru/new/fU1ppgqa
+  /v2/GetState:
+    post:
+      operationId: GetState
+      summary: Получить статуса платежа
+      description: |
+        Метод возвращает статус платежа.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetState_FULL'
+            examples:
+              GetState_FULL:
+                summary: Пример запроса (FULL)
+                value:
+                  TerminalKey: TinkoffBankTest
+                  PaymentId: '13660'
+                  Token: 7241ac8307f349afb7bb9dda760717721bbb45950b97c67289f23d8c69cc7b96
+                  IP: 192.168.0.52
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - TerminalKey
+                  - Amount
+                  - OrderId
+                  - Success
+                  - PaymentId
+                  - ErrorCode
+                  - Status
+                properties:
+                  TerminalKey:
+                    description: |
+                      Идентификатор терминала. Выдается мерчанту Т‑Кассой
+                      при заведении терминала.
+                    type: string
+                    maxLength: 20
+                  Amount:
+                    description: |
+                      Сумма в копейках.
+                    type: number
+                    maxLength: 20
+                  OrderId:
+                    description: |
+                      Идентификатор заказа в системе мерчанта.
+                    type: string
+                    maxLength: 36
+                  Success:
+                    description: |
+                      Успешность прохождения запроса — `true`/`false`.
+                    type: boolean
+                  Status:
+                    description: |
+                      Статус платежа. Подробнее — в разделе [Статусная модель платежа](#tag/Scenarii-oplaty-po-karte/Statusnaya-model-platezha).
+                    type: string
+                    maxLength: 20
+                  PaymentId:
+                    description: |
+                      Идентификатор платежа в системе Т‑Кассы.
+                    type: string
+                    maxLength: 20
+                  ErrorCode:
+                    description: |
+                      Код ошибки. `0` в случае успеха.
+                    type: string
+                    maxLength: 20
+                  Message:
+                    description: |
+                      Краткое описание ошибки.
+                    type: string
+                  Details:
+                    description: |
+                      Подробное описание ошибки.
+                    type: string
+                  Params:
+                    description: |
+                      Информация по способу оплаты или деталям для платежей в рассрочку.
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Items_Params'
+              example:
+                Success: true
+                ErrorCode: '0'
+                Message: OK
+                TerminalKey: TinkoffBankTest
+                Status: AUTHORIZED
+                PaymentId: '13660'
+                OrderId: '21050'
+                Params:
+                  - Key: Route
+                    Value: ACQ
+                  - Key: Source
+                    Value: cards
+                  - Key: CreditAmount
+                    Value: '100000'
+                Amount: 1230
+components:
+  schemas:
+    Common:
+      type: object
+      properties:
+        additionalProperties:
+          type: string
+        OperationInitiatorType:
+          type: string
+          description: |
+            Признак инициатора операции:
+            * `0` — оплата без сохранения реквизитов карты для последующего использования. Сценарий «0 — CIT, Credential-Not-Captured».
+            * `1` — используется, если мерчант сохраняет карту. Сценарий «1 — Consumer-Initiated, Credential-Captured».
+            * `2` — операция по ранее сохранённой карте, инициирована клиентом. Сценарий «2 — Consumer-Initiated, Credential-on-File».
+            * `R` — повторяющаяся операция по сохранённой карте без графика. Является Merchant Initiated сценарием — «R = Merchant-Initiated, Credential-on-File, Recurring».
+            * `I` — повторяющаяся операция по сохраненной карте в соответствии с графиком платежей для погашения кредита. Является Merchant Initiated сценарием — «I = Merchant-Initiated, Credential-on-File, Installment». 
+
+            При передаче в объекте `DATA` атрибута `OperationInitiatorType` учитывайте взаимосвязь его значений:
+              * со значением атрибута `Recurrent` в методе **Init**;
+              * со значением атрибута `RebillId` в методе **Charge**;
+              * с типом терминала, используемом для проведения операций — ECOM или AFT.
+             
+              Подробная таблица — в разделе [Передача признака инициатора операции](#section/Peredacha-priznaka-iniciatora-operacii)
+
+              Если передавать значения атрибутов, которые не соответствуют таблице, MAPI вернет ошибку 1126 —  несопоставимые 
+              значения `rebillId` или `Recurrent` с переданным значением `OperationInitiatorType`.
+          enum:
+            - '0'
+            - '1'
+            - '2'
+            - R
+            - I
+    T-Pay:
+      type: object
+      properties:
+        Device:
+          description: |
+            Тип устройства:
+            * `SDK` — вызов из мобильных приложений;
+            * `Desktop` — вызов из браузера с десктопа;
+            * `MobileWeb` — вызов из браузера с мобильных устройств.
+          type: string
+          example: Desktop
+          enum:
+            - SDK
+            - Desktop
+            - MobileWeb
+        DeviceOs:
+          description: ОС устройства.
+          type: string
+          example: iOS
+        DeviceWebView:
+          description: Признак открытия в WebView.
+          type: boolean
+          example: true
+        DeviceBrowser:
+          description: Браузер.
+          type: string
+          example: Safari
+        TinkoffPayWeb:
+          description: Признак проведения операции через T‑Pay по API.
+          type: boolean
+          example: true
+    LongPay1:
+      properties:
+        ticketNumber:
+          description: |
+            Номера билетов с контрольной цифрой для всех пассажиров, летящих по одному маршруту. В качестве разделителя используйте `;`.
+
+            Необязателен, если передан параметр `ticketReservationNumber`.
+          type: string
+        ticketReservationNumber:
+          description: |
+            Номера билетов с контрольной цифрой для всех пассажиров, летящих по одному маршруту. В качестве разделителя используйте `;`.
+
+            Необязателен, если передан параметр `ticketNumber`.
+          type: string
+        ticketSystem:
+          description: Код системы продажи.
+          type: string
+        ticketAgencyCode:
+          description: Код агентства.
+          type: string
+        ticketAgencyName:
+          description: Название агентства.
+          type: string
+        ticketRestricted:
+          description: |
+            Ограничения билета:
+            * `0` — без ограничений,
+            * `1` — невозвратный.
+          type: string
+    LongPay2:
+      description: |
+        `%` — порядковый номер пассажира от 1 до 4.
+      required:
+        - ticketPassengerSurname%
+        - ticketPassengerFirstname%
+      properties:
+        ticketPassengerSurname%:
+          description: Фамилия латиницей.
+          type: string
+        ticketPassengerFirstname%:
+          description: Имя латиницей.
+          type: string
+        passengerPassport%:
+          description: Серия и номер паспорта.
+          type: string
+        passengerCountry%:
+          description: Гражданство по стандарту `ISO 3166-1 alpha-3`.
+          type: string
+        ticketPassengerBirthDate%:
+          description: Дата рождения в формате `YYYY-DD-MM`.
+          type: string
+    LongPay3:
+      description: \`#` — порядковый номер пассажира от 1 до 4.
+      required:
+        - triplegDate#
+        - triplegCarrier#
+        - triplegDestinationFrom#
+        - triplegDestinationTo#
+      properties:
+        triplegDate#:
+          description: Дата вылета в формате` YYYY-DD-MM`.
+          type: string
+        triplegTime#:
+          description: Время вылета в формате `hh24:mm:ss`.
+          type: string
+        triplegCarrier#:
+          description: Код перевозчика `ИАТА`.
+          type: string
+        triplegFlightNumber#:
+          description: Номер рейса.
+          type: string
+        triplegClass#:
+          description: Класс перелета.
+          type: string
+        triplegDestinationFrom#:
+          description: Код аэропорта вылета ИАТА.
+          type: string
+        triplegDestinationTo#:
+          description: Код аэропорта прилета ИАТА.
+          type: string
+        triplegCountryFrom#:
+          description: Код страны вылета по стандарту `ISO 3166-1 numeric`.
+          type: string
+        triplegCountryTo#:
+          description: Код страны прилета по стандарту `ISO 3166-1 numeric`.
+          type: string
+        triplegStopover#:
+          description: |
+            Остановка при пересадке:
+            * `0` — разрешена,
+            * `X` — запрещена.
+          type: string
+        triplegFareBasisCode#:
+          description: Код тарифа.
+          type: string
+    LongPay:
+      description: Расширенный набор параметров авиабилета передается при создании платежа (метод **Init**) в параметре `DATA`.
+      type: object
+      properties:
+        Параметры билета:
+          type: array
+          items:
+            $ref: '#/components/schemas/LongPay1'
+        Параметры пассажира:
+          type: array
+          items:
+            $ref: '#/components/schemas/LongPay2'
+        Параметры перелета:
+          type: array
+          items:
+            $ref: '#/components/schemas/LongPay3'
+    AgentData:
+      type: object
+      description: |
+        Данные агента. Обязателен, если используется агентская схема.
+      properties:
+        AgentSign:
+          description: |
+            `Тег ФФД: 1222`
+
+
+            Признак агента. Возможные значения:
+            * `bank_paying_agent` — банковский платежный агент,
+            * `bank_paying_subagent` — банковский платежный субагент,
+            * `paying_agent` — платежный агент,
+            * `paying_subagent` — платежный субагент,
+            * `attorney` — поверенный,
+            * `commission_agent` — комиссионер,
+            * `another` — другой тип агента.
+          type: string
+          example: paying_agent
+        OperationName:
+          description: |
+            `Тег ФФД: 1044`
+
+
+            Наименование операции.
+            Параметр обязательный, если `AgentSign` передан в значениях:
+            * `bank_paying_agent`,
+            * `bank_paying_subagent`.
+          type: string
+          maxLength: 64
+          example: Позиция чека
+        Phones:
+          description: |
+            `Тег ФФД: 1073`
+
+
+            Телефоны платежного агента в формате `+{Ц}`.
+            Параметр обязательный, если в `AgentSign` передан в значениях:
+            * `bank_paying_agent`,
+            * `bank_paying_subagent`,
+            * `paying_agent`,
+            * `paying_subagent`.
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 19
+          example:
+            - '+790912312398'
+        ReceiverPhones:
+          description: |
+            `Тег ФФД: 1074`
+
+
+            Телефоны оператора по приему платежей в формате `+{Ц}`.
+            Параметр обязательный, если в `AgentSign` передан в значениях:
+            * `paying_agent`,
+            * `paying_subagent`.
+          items:
+            type: string
+            minLength: 1
+            maxLength: 19
+          example:
+            - '+79221210697'
+            - '+79098561231'
+        TransferPhones:
+          description: |
+            `Тег ФФД: 1075`
+
+
+            Телефоны оператора перевода в формате `+{Ц}`.
+            Параметр обязательный, если в `AgentSign` передан в значениях:
+            * `bank_paying_agent`,
+            * `bank_paying_subagent`.
+          items:
+            type: string
+            minLength: 1
+            maxLength: 19
+          example:
+            - '+79221210697'
+        OperatorName:
+          description: |
+            `Тег ФФД: 1026`
+
+
+            Наименование оператора перевода.
+            Параметр обязательный, если в `AgentSign` передан в значениях:
+            * `bank_paying_agent`,
+            * `bank_paying_subagent`.
+          type: string
+          maxLength: 64
+          example: Tinkoff
+        OperatorAddress:
+          description: |
+            `Тег ФФД: 1005`
+
+
+            Адрес оператора перевода.
+            Параметр обязательный, если в `AgentSign` передан в значениях:
+            * `bank_paying_agent`,
+            * `bank_paying_subagent`.
+          type: string
+          maxLength: 243
+          example: г. Тольятти
+        OperatorInn:
+          description: |
+            `Тег ФФД: 1016`
+
+
+            ИНН оператора перевода.
+            Параметр обязательный, если в `AgentSign` передан в значениях:
+            * `bank_paying_agent`,
+            * `bank_paying_subagent`.
+          type: string
+          maxLength: 12
+          example: '7710140679'
+    SupplierInfo:
+      type: object
+      description: |
+        Данные поставщика платежного агента. 
+        Обязателен, если передается значение `AgentSign` в объекте `AgentData`.
+      properties:
+        Phones:
+          description: |
+            `Тег ФФД: 1171`
+
+
+            Телефон поставщика, в формате `+{Ц}`.
+            Атрибут обязателен, если передается значение `AgentSign`
+            в объекте `AgentData`.
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 19
+          example:
+            - '+79221210697'
+            - '+79098561231'
+        Name:
+          description: |
+            `Тег ФФД: 1225`
+
+
+            Наименование поставщика.
+            Атрибут обязателен, если передается значение `AgentSign` 
+            в объекте `AgentData`.
+            Внимание: в эти 239 символов включаются телефоны поставщика 
+            + 4 символа на каждый телефон.
+
+
+            Например, если передано два телефона поставщика длиной 12 и 14 символов, 
+            максимальная длина наименования поставщика будет 
+            239 – (12 + 4) – (14 + 4) = 205 символов.
+          type: string
+          maxLength: 239
+          example: ООО Вендор товара
+        Inn:
+          description: |
+            `Тег ФФД: 1226`
+
+
+            ИНН поставщика в формате `ЦЦЦЦЦЦЦЦЦЦ`.
+            Атрибут обязателен, если передается значение `AgentSign` 
+            в объекте `AgentData`.
+          type: string
+          minLength: 10
+          maxLength: 12
+          example: '7710140679'
+    Items_FFD_105:
+      type: object
+      required:
+        - Name
+        - Price
+        - Quantity
+        - Amount
+        - Tax
+      properties:
+        Name:
+          description: |
+            `Тег ФФД: 1030`
+
+
+            Наименование товара.
+          type: string
+          maxLength: 128
+          example: Наименование товара 1
+        Price:
+          description: |
+            `Тег ФФД: 1078`
+
+
+            Цена в копейках.
+          type: number
+          example: 10000
+        Quantity:
+          description: |
+            `Тег ФФД: 1023`
+
+
+            Количество или вес товара.
+            Максимальное количество символов — 8, где целая часть — не больше 5 знаков, дробная — не больше 3 знаков для АТОЛ, 
+            и 2 знаков для CloudPayments.
+          type: number
+          maxLength: 8
+          example: 1
+        Amount:
+          description: |
+            `Тег ФФД: 1043`
+
+
+            Стоимость товара в копейках.
+            Произведение `Quantity` и `Price`.
+          type: number
+          maxLength: 10
+          example: 10000
+        PaymentMethod:
+          description: |
+            `Тег ФФД: 1214`
+
+
+            Возможные значения:
+            * `full_prepayment` — предоплата 100%,
+            * `prepayment` — предоплата,
+            * `advance` — аванс,
+            * `full_payment` — полный расчет,
+            * `partial_payment` — частичный расчет и кредит,
+            * `credit` — передача в кредит,
+            * `credit_payment` — оплата кредита.
+
+
+            Если значение не
+            передано, по умолчанию в онлайн-кассу
+            передается признак способа расчёта
+            `full_payment`.
+          type: string
+          enum:
+            - full_prepayment
+            - prepayment
+            - advance
+            - full_payment
+            - partial_payment
+            - credit
+            - credit_payment
+          default: full_payment
+        PaymentObject:
+          description: |
+            `Тег ФФД: 1212`
+
+
+            Признак предмета расчета.
+            Возможные значения:
+            * `commodity` — товар,
+            * `excise` — подакцизный товар,
+            * `job` — работа,
+            * `service` — услуга,
+            * `gambling_bet` — ставка азартной игры,
+            * `gambling_prize` — выигрыш азартной игры,
+            * `lottery` — лотерейный билет,
+            * `lottery_prize` — выигрыш лотереи,
+            * `intellectual_activity` — предоставление результатов интеллектуальной деятельности,
+            * `payment` — платеж,
+            * `agent_commission` — агентское вознаграждение,
+            * `composite` — составной предмет расчета,
+            * `another` — иной предмет расчета,
+
+
+            Если значение не передано, по умолчанию в онлайн-кассу
+            отправляется признак предмета расчёта `commodity`.
+          type: string
+          enum:
+            - commodity
+            - excise
+            - job
+            - service
+            - gambling_bet
+            - gambling_prize
+            - lottery
+            - lottery_prize
+            - intellectual_activity
+            - payment
+            - agent_commission
+            - composite
+            - another
+          default: commodity
+        Tax:
+          description: |
+            `Тег ФФД: 1199`
+
+
+            Ставка НДС.
+            Перечисление со значениями:
+            * `none` — без НДС,
+            * `vat0` — НДС по ставке 0%,
+            * `vat5` — НДС по ставке 5%,
+            * `vat7` — НДС по ставке 7%,
+            * `vat10` — НДС по ставке 10%,
+            * `vat20` — НДС по ставке 20%,
+            * `vat105` — НДС чека по расчетной ставке 5/105,
+            * `vat107` — НДС чека по расчетной ставке 7/107,
+            * `vat110` — НДС чека по расчетной ставке 10/110,
+            * `vat120` — НДС чека по расчетной ставке 20/120.
+          type: string
+          enum:
+            - none
+            - vat0
+            - vat5
+            - vat7
+            - vat10
+            - vat20
+            - vat105
+            - vat107
+            - vat110
+            - vat120
+          example: vat10
+        Ean13:
+          description: |
+            `Тег ФФД: 1162`
+
+
+            Штрих-код в требуемом формате. В зависимости от
+            типа кассы требования могут отличаться:
+            * АТОЛ Онлайн — шестнадцатеричное
+            представление с пробелами. Максимальная
+            длина – 32 байта (^[a-fA-F0-9]{2}$)|(^([afA-F0-9]{2}\\s){1,31}[a-fA-F0-9]{2}$).
+
+            Пример:
+            `00 00 00 01 00 21 FA 41 00 23 05 41 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 12 00 AB 00`
+
+            * CloudKassir — длина строки: четная, от 8 до
+            150 байт. То есть от 16 до 300 ASCII символов
+            ['0' - '9' , 'A' - 'F' ] шестнадцатеричного
+            представления кода маркировки товара.
+
+            Пример:
+            `303130323930303030630333435`
+
+
+            * OrangeData — строка, содержащая `base64`-
+            кодированный массив от 8 до 32 байт.
+
+            Пример:
+            `igQVAAADMTIzNDU2Nzg5MDEyMwAAAAAAAQ==`
+
+            Если в запросе передается параметр Ean13, не
+            прошедший валидацию, возвращается неуспешный
+            ответ с текстом ошибки в параметре `message` =
+            `Неверный параметр Ean13`.
+          type: string
+          maxLength: 300
+          example: '0123456789'
+        ShopCode:
+          description: |
+            Код магазина. Для параметра `ShopСode`
+            нужно использовать значение параметра
+            `Submerchant_ID`, который возвращается в ответн при
+            регистрации магазинов через XML. Если XML не
+            используется, передавать поле не нужно.
+          type: string
+          example: '12345'
+        AgentData:
+          description: |
+            Данные агента.
+            Используется при работе по агентской схеме.
+          $ref: '#/components/schemas/AgentData'
+        SupplierInfo:
+          description: |
+            Данные поставщика платежного агента.
+            Обязателен, если передается значение `AgentSign` в объекте `AgentData`.
+          $ref: '#/components/schemas/SupplierInfo'
+    Payments:
+      type: object
+      description: |
+        Детали платежа.
+
+
+        Если объект не передан, автоматически указывается итоговая сумма чека с видом оплаты «Безналичный». 
+         
+        Если передан объект `receipt.Payments`, значение в `Electronic` должно быть равно итоговому значению `Amount` в методе **Init**.
+        При этом сумма введенных значений по всем видам оплат, включая `Electronic`, должна быть равна сумме (**Amount**) всех товаров,
+        переданных в объекте `receipt.Items`.
+      required:
+        - Electronic
+      properties:
+        Cash:
+          description: |
+            `Тег ФФД: 1031.`<br>
+
+            Вид оплаты «Наличные».
+            Сумма к оплате в копейках.
+          type: number
+          maxLength: 14
+          example: 90000
+        Electronic:
+          description: |
+            `Тег ФФД: 1081.`<br>
+
+            Вид оплаты «Безналичный».
+          type: number
+          maxLength: 14
+          example: 50000
+        AdvancePayment:
+          description: |
+            `Тег ФФД: 1215.`<br>
+
+            Вид оплаты «Предварительная оплата (Аванс)».
+          type: number
+          maxLength: 14
+          example: 0
+        Credit:
+          description: |
+            `Тег ФФД: 1216.`<br>
+
+            Вид оплаты «Постоплата (Кредит)».
+          type: number
+          maxLength: 14
+          example: 0
+        Provision:
+          description: |
+            `Тег ФФД: 1217.`<br>
+
+            Вид оплаты «Иная форма оплаты».
+          type: number
+          maxLength: 14
+          example: 0
+    Receipt_FFD_105:
+      type: object
+      description: Объект с информацией о видах суммы платежа. Если объект не передан, автоматически указывается итоговая сумма чека с видом оплаты «Безналичная».
+      required:
+        - Items
+        - Taxation
+      properties:
+        Items:
+          description: Массив позиций чека с информацией о товарах.
+          type: array
+          items:
+            $ref: '#/components/schemas/Items_FFD_105'
+        FfdVersion:
+          description: |
+            Версия ФФД. Возможные значения:
+            * FfdVersion: `1.2`,
+            * FfdVersion: `1.05`.
+
+            Версия ФФД по умолчанию — `1.05`.
+          type: string
+          default: '1.05'
+        Email:
+          description: |
+            `Тег ФФД: 1008.`<br>
+
+            Электронная почта клиента.
+            Параметр должен быть заполнен, если не передано значение 
+            в параметре `Phone`.
+          type: string
+          format: email
+          maxLength: 64
+          example: a@test.ru
+        Phone:
+          description: |
+            `Тег ФФД: 1008.`<br>
+
+            Телефон клиента в формате `+{Ц}`.
+            Параметр должен быть заполнен, если не передано значение 
+            в параметре `Email`.
+          type: string
+          maxLength: 64
+          example: '+79031234567'
+        Taxation:
+          description: |
+            `Тег ФФД: 1055.`
+
+
+            Система налогообложения. Возможные значения:
+            * `osn` — общая СН;
+            * `usn_income` — упрощенная СН (доходы);
+            * `usn_income_outcome` — упрощенная СН (доходы минус расходы);
+            * `envd` — единый налог на вмененный доход;
+            * `esn` — единый сельскохозяйственный налог;
+            * `patent` — патентная СН.
+          type: string
+          enum:
+            - osn
+            - usn_income
+            - usn_income_outcome
+            - envd
+            - esn
+            - patent
+          example: osn
+        Payments:
+          description: |
+            Объект c информацией о видах суммы платежа.
+            Смотрите структуру объекта `Payments`.
+            - Если объект не передан, автоматически указывается итоговая 
+            сумма чека с видом оплаты «Безналичный».
+            - Если передан объект `receipt.Payments`, значение в `Electronic`
+            должно быть равно итоговому значению `Amount` в методе **Init**. 
+            При этом сумма введенных значений по всем видам оплат, 
+            включая `Electronic`, должна быть равна сумме (**Amount**) всех товаров, 
+            переданных в объекте `receipt.Items`.
+          $ref: '#/components/schemas/Payments'
+    ClientInfo:
+      type: object
+      description: |
+        Информация по клиенту.
+      properties:
+        Birthdate:
+          description: |
+            `Тег ФФД: 1243`
+
+
+            Дата рождения клиента в формате `ДД.ММ.ГГГГ`.
+          type: string
+        Citizenship:
+          description: |
+            `Тег ФФД: 1244`
+
+
+            Числовой код страны, гражданином которой является
+            клиент. Код страны указывается в соответствии с
+            Общероссийским классификатором стран мира [ОКСМ](https://classifikators.ru/oksm).
+          type: string
+        DocumentСode:
+          description: |
+            `Тег ФФД: 1245`
+
+
+            Числовой код вида документа, удостоверяющего
+            личность.
+
+            Может принимать только следующие значения:
+
+            |Код|Описание|
+            |---|---|
+            | 21 | Паспорт гражданина Российской Федерации|
+            | 22 | Паспорт гражданина Российской Федерации, дипломатический паспорт, служебный паспорт, удостоверяющие личность гражданина Российской Федерации за пределами Российской Федерации|
+            | 26 | Временное удостоверение личности гражданина Российской Федерации, выдаваемое на период оформления паспорта гражданина Российской Федерации|
+            | 27 | Свидетельство о рождении гражданина Российской Федерации — для граждан Российской Федерации в возрасте до 14 лет|
+            | 28 | Иные документы, признаваемые документами, удостоверяющими личность гражданина Российской Федерации в соответствии с законодательством Российской Федерации|
+            | 31 | Паспорт иностранного гражданина|
+            | 32 | Иные документы, признаваемые документами, удостоверяющими личность иностранного гражданина в соответствии с законодательством Российской Федерации и международным договором Российской Федерации|
+            | 33 | Документ, выданный иностранным государством и признаваемый в соответствии с международным договором Российской Федерации в качестве документа, удостоверяющего личность лица безгражданства.|
+            | 34 | Вид на жительство — для лиц без гражданства|
+            | 35 | Разрешение на временное проживание — для лиц без гражданства|
+            | 36 | Свидетельство о рассмотрении ходатайства о признании лица без гражданства беженцем на территории Российской Федерации по существу|
+            | 37 | Удостоверение беженца|
+            | 38 | Иные документы, признаваемые документами, удостоверяющими личность лиц без гражданства в соответствии с законодательством Российской Федерации и международным договором Российской Федерации|
+            | 40 | Документ, удостоверяющий личность лица, не имеющего действительного документа, удостоверяющего личность, на период рассмотрения заявления о признании гражданином Российской Федерации или о приеме в гражданство Российской Федерации|
+          type: string
+          example: '21'
+        DocumentData:
+          description: |
+            `Тег ФФД: 1246`
+
+
+            Реквизиты документа, удостоверяющего личность — например, серия и номер паспорта.
+          type: string
+        Address:
+          description: |
+            `Тег ФФД: 1254`
+
+
+            Адрес клиента-грузополучателя.
+          type: string
+          maxLength: 256
+    MarkCode:
+      type: object
+      description: |
+        Код маркировки в машиночитаемой форме,
+        представленный в виде одного из видов кодов,
+        формируемых в соответствии с требованиями,
+        предусмотренными правилами, для нанесения
+        на потребительскую упаковку, или на товары,
+        или на товарный ярлык
+
+
+        Включается в чек, если предметом расчета является товар, подлежащий обязательной маркировке средством идентификации — соответствующий 
+        код в поле `paymentObject`.
+      required:
+        - MarkCodeType
+        - Value
+      properties:
+        MarkCodeType:
+          description: |
+            Тип штрих кода.
+            Возможные значения:
+            * `UNKNOWN` — код товара, формат которого не
+            идентифицирован, как один из реквизитов;
+            * `EAN8` — код товара в формате EAN-8;
+            * `EAN13` — код товара в формате EAN-13;
+            * `ITF14` — код товара в формате ITF-14;
+            * `GS10` — код товара в формате GS1,
+            нанесенный на товар, не подлежащий
+            маркировке;
+            * `GS1M` — код товара в формате GS1,
+            нанесенный на товар, подлежащий
+            маркировке;
+            * `SHORT` — код товара в формате короткого кода
+            маркировки, нанесенный на товар;
+            * `FUR` — контрольно-идентификационный знак
+            мехового изделия;
+            * `EGAIS20` — код товара в формате ЕГАИС-2.0;
+            * `EGAIS30` — код товара в формате ЕГАИС-3.0;
+            * `RAWCODE` — код маркировки, как он был прочитан сканером.
+          type: string
+          example: EAN8
+        Value:
+          description: |
+            Код маркировки.
+          type: string
+          example: '12345678'
+    MarkQuantity:
+      type: object
+      description: |
+        Реквизит «дробное количество маркированного товара».
+        Передается, только если расчет осуществляется 
+        за маркированный товар — соответствующий код в поле 
+        `paymentObject`, и значение в поле `measurementUnit` 
+        равно `0`.
+
+        `MarkQuantity` не является обязательным объектом, в том числе для товаров с маркировкой. Этот объект можно передавать, 
+         если товар с маркировкой. То есть даже при ФФД 1.2 этот объект не является обязательным.
+         
+
+        Пример: 
+        ```
+              {
+              "numenator": "1"
+              "denominator" "2"  
+              }
+        ```
+      properties:
+        Numerator:
+          description: |
+            `Тег ФФД: 1293`
+
+
+            Числитель дробной части предмета расчета. 
+            Значение должно быть строго меньше
+            значения реквизита «знаменатель».
+          type: number
+          example: 1
+        Denominator:
+          description: |
+            `Тег ФФД: 1294`
+
+
+            Знаменатель дробной части предмета расчета. 
+            Значение равно количеству товара в партии (упаковке), 
+            имеющей общий код маркировки товара.
+          type: number
+          example: 2
+    SectoralItemProps:
+      type: object
+      description: |
+        Отраслевой реквизит предмета расчета. Указывается только для товаров подлежащих обязательной маркировке средством
+        идентификации. Включение этого реквизита предусмотрено НПА отраслевого регулирования для
+        соответствующей товарной группы.
+      required:
+        - FederalId
+        - Date
+        - Number
+        - Value
+      properties:
+        FederalId:
+          description: |
+            `Тег ФФД: 1262`
+
+
+            Идентификатор ФОИВ — федеральный орган
+            исполнительной власти.
+          type: string
+          example: '001'
+        Date:
+          description: |
+            `Тег ФФД: 1263`
+
+
+            Дата нормативного акта ФОИВ.
+          type: string
+          format: date
+          example: 21.11.2020
+        Number:
+          description: |
+            `Тег ФФД: 1264`
+
+
+            Номер нормативного акта ФОИВ.
+          type: string
+          example: 123/43
+        Value:
+          description: |
+            `Тег ФФД: 1265`
+
+
+            Состав значений, определенных нормативным актом ФОИВ.
+          type: string
+          example: test value SectoralItemProps
+    Items_FFD_12:
+      type: object
+      required:
+        - Name
+        - Price
+        - Quantity
+        - Amount
+        - Tax
+        - PaymentMethod
+        - PaymentObject
+        - MeasurementUnit
+      properties:
+        AgentData:
+          type: object
+          $ref: '#/components/schemas/AgentData'
+        SupplierInfo:
+          type: object
+          $ref: '#/components/schemas/SupplierInfo'
+        Name:
+          description: |
+            `Тег ФФД: 1030`
+
+
+            Наименование товара.
+          type: string
+          maxLength: 128
+          example: Наименование товара 1
+        Price:
+          description: |
+            `Тег ФФД: 1079`
+
+
+            Цена в копейках.
+          type: number
+          example: 10000
+        Quantity:
+          description: |
+            `Тег ФФД: 1023`
+
+
+            Количество или вес товара.
+            * Максимальное количество символов — 8, где целая часть — не больше 5 знаков, дробная — не больше 3 знаков для Атол и
+            2 знаков для CloudPayments.
+            * Значение `1`, если передан объект `MarkCode`.
+          type: number
+          maxLength: 8
+          example: 1
+        Amount:
+          description: |
+            `Тег ФФД: 1043`
+
+
+            Стоимость товара в копейках.
+            Произведение `Quantity` и `Price`.
+          type: number
+          maxLength: 10
+          example: 10000
+        Tax:
+          description: |
+            `Тег ФФД: 1199`
+
+
+            Ставка НДС.
+            Возможные значения:
+            * `none` — без НДС,
+            * `vat0` — НДС по ставке 0%;
+            * `vat5` — НДС по ставке 5%;
+            * `vat7` — НДС по ставке 7%;
+            * `vat10` — НДС по ставке 10%;
+            * `vat20` — НДС по ставке 20%;
+            * `vat105` — НДС чека по расчетной ставке 5/105;
+            * `vat107` — НДС чека по расчетной ставке 7/107;
+            * `vat110` — НДС чека по расчетной ставке 10/110;
+            * `vat120` — НДС чека по расчетной ставке 20/120.
+          type: string
+          enum:
+            - none
+            - vat0
+            - vat5
+            - vat7
+            - vat10
+            - vat20
+            - vat105
+            - vat107
+            - vat110
+            - vat120
+          example: vat10
+        PaymentMethod:
+          description: |
+            `Тег ФФД: 1214`
+
+             
+            Возможные значения:
+             * `full_prepayment` — предоплата 100%,
+             * `prepayment` — предоплата,
+             * `advance` — аванс,
+             * `full_payment` — полный расчет,
+             * `partial_payment` — частичный расчет и кредит,
+             * `credit` — передача в кредит,
+             * `credit_payment` — оплата кредита. 
+
+
+            Если значение не передано, по умолчанию в онлайн-кассу
+            передается признак способа расчёта
+            `full_payment`.
+          type: string
+          enum:
+            - full_prepayment
+            - prepayment
+            - advance
+            - full_payment
+            - partial_payment
+            - credit
+            - credit_payment
+          example: full_payment
+        PaymentObject:
+          description: |
+            `Тег ФФД: 1212`
+
+
+            Значения реквизита «признак предмета расчета» — тег 1212, таблица 101.
+            Возможные значения:
+            * `commodity` — товар,
+            * `excise` — подакцизный товар,
+            * `job` — работа,
+            * `service` — услуга,
+            * `gambling_bet` — ставка азартной игры,
+            * `gambling_prize` — выигрыш азартной игры,
+            * `lottery` — лотерейный билет,
+            * `lottery_prize` — выигрыш лотереи,
+            * `intellectual_activity` — предоставление,
+              результатов интеллектуальной деятельности,
+            * `payment` — платеж,
+            * `agent_commission` — агентское
+              вознаграждение,
+            * `contribution` — выплата,
+            * `property_rights` — имущественное право,
+            * `unrealization` — внереализационный доход,
+            * `tax_reduction` — иные платежи и взносы,
+            * `trade_fee` — торговый сбор,
+            * `resort_tax` — курортный сбор,
+            * `pledge` — залог,
+            * `income_decrease` — расход,
+            * `ie_pension_insurance_without_payments` — взносы на ОПС ИП,
+            * `ie_pension_insurance_with_payments` — взносы на ОПС,
+            * `ie_medical_insurance_without_payments` — взносы на ОМС ИП,
+            * `ie_medical_insurance_with_payments` — взносы на ОМС,
+            * `social_insurance` — взносы на ОСС,
+            * `casino_chips` — платеж казино,
+            * `agent_payment` — выдача ДС,
+            * `excisable_goods_without_marking_code` — АТНМ,
+            * `excisable_goods_with_marking_code` — АТМ,
+            * `goods_without_marking_code` — ТНМ,
+            * `goods_with_marking_code` — ТМ,
+            * `another` — иной предмет расчета.
+          type: string
+          enum:
+            - commodity
+            - excise
+            - job
+            - service
+            - gambling_bet
+            - gambling_prize
+            - lottery
+            - lottery_prize
+            - intellectual_activity
+            - payment
+            - agent_commission
+            - contribution
+            - property_rights
+            - unrealization
+            - tax_reduction
+            - trade_fee
+            - resort_tax
+            - pledge
+            - income_decrease
+            - ie_pension_insurance_without_payments
+            - ie_pension_insurance_with_payments
+            - ie_medical_insurance_without_payments
+            - ie_medical_insurance_with_payments
+            - social_insurance
+            - casino_chips
+            - agent_payment
+            - excisable_goods_without_marking_code
+            - excisable_goods_with_marking_code
+            - goods_without_marking_code
+            - goods_with_marking_code
+            - another
+          example: goods_with_marking_code
+        UserData:
+          description: |
+            `Тег ФФД: 1191`
+
+
+            Дополнительный реквизит предмета расчета.
+          type: string
+          example: Данные пользователя ext.test.qa@tinkoff.ru
+        Excise:
+          description: |
+            `Тег ФФД: 1229`
+
+
+            Сумма акциза в рублях с учетом копеек,
+            включенная в стоимость предмета расчета:
+            * целая часть — не больше 8 знаков;
+            * дробная часть — не больше 2 знаков;
+            * значение не может быть отрицательным.
+          type: string
+          example: '12.2'
+        CountryCode:
+          description: |
+            `Тег ФФД: 1230`
+
+
+            Цифровой код страны происхождения товара в
+            соответствии с Общероссийским
+            классификатором стран мира — 3 цифры.
+          type: string
+          maxLength: 3
+          example: '056'
+        DeclarationNumber:
+          description: |
+            `Тег ФФД: 1231`
+
+
+            Номер таможенной декларации.
+          type: string
+          maxLength: 32
+          example: '12345678901'
+        MeasurementUnit:
+          description: |
+            `Тег ФФД: 2108`
+
+
+            Единицы измерения.
+
+
+            Возможные варианты описаны в разделе<a href="https://www.tbank.ru/kassa/dev/payments/#tag/Opisanie-dopolnitelnyh-obuektov" target="_blank"> дополнительных объектов</a>. Также возможна передача произвольных значений.
+
+            `MeasurementUnit` обязателен, если версия ФД онлайн-кассы — 1.2.
+          type: string
+          example: шт
+        MarkProcessingMode:
+          description: |
+            `Тег ФФД: 2102`
+
+
+            Режим обработки кода маркировки.
+            Должен принимать значение, равное `0`.
+            Включается в чек , если предметом расчета 
+            является товар, подлежащий обязательной
+            маркировке средством идентификации — соответствующий код в поле `paymentObject`.
+          type: string
+        MarkCode:
+          type: array
+          description: |
+            `Тег ФФД: 1163`
+
+
+            Код маркировки в машиночитаемой форме,
+            представленный в виде одного из видов кодов,
+            формируемых в соответствии с требованиями,
+            предусмотренными правилами, для нанесения
+            на потребительскую упаковку, или на товары,
+            или на товарный ярлык.
+
+
+            Включается в чек, если предметом расчета является товар, подлежащий обязательной маркировке средством идентификации — соответствующий
+            код в поле `paymentObject`.
+          items:
+            $ref: '#/components/schemas/MarkCode'
+        MarkQuantity:
+          type: object
+          $ref: '#/components/schemas/MarkQuantity'
+        SectoralItemProps:
+          type: array
+          description: |
+            Отраслевой реквизит предмета расчета. Указывается только для товаров подлежащих обязательной маркировке средством
+            идентификации. Включение этого реквизита предусмотрено НПА отраслевого регулирования для
+            соответствующей товарной группы.
+          items:
+            $ref: '#/components/schemas/SectoralItemProps'
+    Receipt_FFD_12:
+      type: object
+      description: Объект с информацией о видах суммы платежа. Если объект не передан, автоматически указывается итоговая сумма чека с видом оплаты «Безналичная».
+      required:
+        - FfdVersion
+        - Taxation
+        - Items
+      properties:
+        FfdVersion:
+          description: |
+            Версия ФФД.
+            Возможные значения:
+            * FfdVersion: 1.2,
+            * FfdVersion: 1.05.
+          type: string
+        ClientInfo:
+          type: object
+          $ref: '#/components/schemas/ClientInfo'
+        Taxation:
+          description: |
+            `Тег ФФД: 1055`
+
+
+            Система налогообложения. Возможные значения:
+            * `osn` — общая СН,
+            * `usn_income` — упрощенная СН (доходы),
+            * `usn_income_outcome` — упрощенная СН (доходы минус расходы),
+            * `envd` — единый налог на вмененный доход,
+            * `esn` — единый сельскохозяйственный налог,
+            * `patent` — патентная СН.
+          type: string
+          enum:
+            - osn
+            - usn_income
+            - usn_income_outcome
+            - envd
+            - esn
+            - patent
+          example: osn
+        Email:
+          description: |
+            `Тег ФФД: 1008`
+
+
+            Электронная почта клиента.
+            Параметр должен быть заполнен, если не передано значение 
+            в параметре `Phone`.
+          type: string
+          format: email
+          maxLength: 64
+          example: a@test.ru
+        Phone:
+          description: |
+            `Тег ФФД: 1008`
+
+
+            Телефон клиента в формате `+{Ц}`.
+            Параметр должен быть заполнен, если не передано значение 
+            в параметре `Email`.
+          type: string
+          maxLength: 64
+          example: '+79031234567'
+        Customer:
+          description: |
+            `Тег ФФД: 1227`
+
+
+            Идентификатор/имя клиента.
+          type: string
+          example: '78894325'
+        CustomerInn:
+          description: |
+            `Тег ФФД: 1228`
+
+
+            ИНН клиента.
+          type: string
+          example: '788621292'
+        Items:
+          description: |
+            Массив, содержащий в себе информацию о товарах.
+
+
+            Атрибуты, предусмотренные в протоколе для отправки чеков по маркируемым товарам, не являются
+            обязательными для товаров без маркировки. Если используется ФФД 1.2, но реализуемый товар не
+            подлежит маркировке, поля можно не отправлять или отправить со значением null.
+          type: array
+          items:
+            $ref: '#/components/schemas/Items_FFD_12'
+        Payments:
+          description: |
+            Объект c информацией о видах суммы платежа.
+            Смотрите структуру объекта `Payments`.
+            1. Если объект не передан, будет автоматически указана итоговая 
+            сумма чека с видом оплаты «Безналичный».
+            2. Если передан объект `receipt.Payments`, значение в `Electronic`
+            должно быть равно итоговому значению `Amount` в методе **Init**. 
+            При этом сумма введенных значений по всем видам оплат, 
+            включая `Electronic`, должна быть равна сумме (**Amount**) всех товаров, 
+            переданных в объекте `receipt.Items`
+          type: array
+          items:
+            $ref: '#/components/schemas/Payments'
+    Shops:
+      type: object
+      description: JSON-объект с данными маркетплейса. Обязательный для маркетплейсов.
+      required:
+        - ShopCode
+        - Amount
+      properties:
+        ShopCode:
+          description: |
+            Код магазина
+          type: string
+          example: '700456'
+        Amount:
+          description: |
+            Cумма в копейках, которая относится к
+            указанному `ShopCode`.
+          type: number
+          example: 10000
+        Name:
+          description: |
+            Наименование товара.
+          type: string
+          maxLength: 128
+          example: Товар
+        Fee:
+          description: |
+            Сумма комиссии в копейках, удерживаемая из
+            возмещения партнера в пользу маркетплейса.
+            Если не передано, используется комиссия,
+            указанная при регистрации.
+          type: string
+          example: '500'
+    Init_FULL:
+      type: object
+      required:
+        - TerminalKey
+        - Token
+        - Amount
+        - OrderId
+      properties:
+        TerminalKey:
+          description: |
+            Идентификатор терминала. <br>
+            Выдается мерчанту Т‑Кассой при заведении терминала.
+          type: string
+          maxLength: 20
+          example: TinkoffBankTest
+        Amount:
+          description: |
+            * Сумма в копейках. Например, 3 руб. 12коп. — это число 312.
+            * Параметр должен быть равен сумме всех параметров `Amount`, переданных в объекте `Items`.
+            * Минимальная сумма операции с помощью СБП составляет 10 руб.
+          type: number
+          maxLength: 10
+          example: 140000
+        OrderId:
+          description: Идентификатор заказа в системе мерчанта. Должен быть уникальным для каждой операции.
+          type: string
+          maxLength: 36
+          example: '21050'
+        Token:
+          description: Подпись запроса.
+          type: string
+          example: 7241ac8307f349afb7bb9dda760717721bbb45950b97c67289f23d8c69cc7b96
+        Description:
+          description: |
+            Описание заказа.
+            Значение параметра будет отображено на платежной форме.
+             
+             
+            Для привязки и одновременной оплаты по СБП поле обязательное. При оплате через СБП эта информация
+            отобразится в мобильном банке клиента.
+          type: string
+          maxLength: 140
+          example: Подарочная карта на 1400.00 рублей
+        CustomerKey:
+          description: |
+            Идентификатор клиента в системе мерчанта.
+
+            * Обязателен, если передан атрибут `Recurrent`.
+            * Если был передан в запросе, в нотификации будет указан `CustomerKey` и его `CardId`. Подробнее — в методе
+            [GetCardList](#tag/Metody-raboty-s-kartami/paths/~1GetCardList/post).
+            * Нужен для сохранения карт на платежной форме — платежи в один клик.
+            * Необязателен при рекуррентных платежах через СБП.
+          type: string
+          maxLength: 36
+        Recurrent:
+          description: |
+            Признак родительского рекуррентного платежа. Обязателен для регистрации автоплатежа. 
+
+
+            Если передается и установлен в `Y`, регистрирует платеж как рекуррентный. 
+            В этом случае после оплаты в нотификации на `AUTHORIZED` будет передан параметр `RebillId` для использования в методе **Charge**.
+            Для привязки и одновременной оплаты по CБП передавайте `Y`. 
+
+            Значение зависит от атрибутов:
+
+            * `OperationInitiatorType` — в методе `/init`,
+            * `Recurrent` — в методе `/Init`. 
+
+
+            Подробнее — в описании методов [Рекуррентный платёж](#tag/Rekurrentnyj-platyozh) и [Инициализация платежа](#tag/Standartnyj-platyozh/paths/~1Init/post).
+          type: string
+          maxLength: 1
+          example: 'Y'
+        PayType:
+          description: |
+            Определяет тип проведения платежа — двухстадийная или одностадийная оплата:
+
+            * `O` — одностадийная оплата,
+            * `T` — двухстадийная оплата. 
+
+
+            Если параметр передан — используется его значение, если нет — значение из настроек терминала.
+          type: string
+          enum:
+            - O
+            - T
+        Language:
+          description: |
+            Язык платежной формы:
+
+            * `ru` — русский,
+            * `en` — английский. 
+
+
+            Если не передан, форма откроется на русском языке.
+          type: string
+          maxLength: 2
+          example: ru
+        NotificationURL:
+          description: |
+            URL на веб-сайте мерчанта, куда будет отправлен POST-запрос о статусе выполнения вызываемых методов — настраивается 
+            в личном кабинете. Если параметр:
+
+            * передан — используется его значение,
+            * не передан — значение из настроек терминала.
+          type: string
+          format: uri
+        SuccessURL:
+          description: |
+            URL на веб-сайте мерчанта, куда будет
+            переведен клиент в случае успешной оплаты — настраивается в личном кабинете. Если параметр:
+            * передан — используется его значение,
+            * не передан — значение из настроек терминала.
+          type: string
+          format: uri
+        FailURL:
+          description: |
+            URL на веб-сайте мерчанта, куда будет
+            переведен клиент в случае неуспешной
+            оплаты — настраивается в личном кабинете. Если параметр:
+            * передан — используется его значение,
+            * не передан — значение из настроек терминала.
+          type: string
+          format: uri
+        RedirectDueDate:
+          description: |
+            Cрок жизни ссылки или динамического QR-кода
+            СБП, если выбран этот способ оплаты.<br><br>
+            Если текущая дата превышает дату, которая передана в
+            этом параметре, ссылка для оплаты или
+            возможность платежа по QR-коду становятся
+            недоступными и платёж выполнить нельзя.
+
+            * Максимальное значение — 90 дней от текущей даты.
+            * Минимальное значение — 1 минута от текущей даты.
+            * Формат даты — `YYYY-MM-DDTHH24:MI:SS+GMT`.
+
+            Пример даты: 2016-08-31T12:28:00+03:00. <br>
+
+            Если не передан, принимает значение 24 часа для платежа 
+            и 30 дней для счета.
+
+            **Выставление счета через личный кабинет** <br><br>
+            Если параметр `RedirectDueDate` не был передан, проверяется настроечный параметр
+            платежного терминала `REDIRECT_TIMEOUT`, который может содержать значение срока жизни ссылки в
+            часах. Если его значение:
+            - больше нуля — оно будет установлено в качестве срока жизни ссылки или
+            динамического QR-кода;
+            - меньше нуля — устанавливается значение по умолчанию: 1440 мин. (1 сутки).
+          format: date-time
+        DATA:
+          description: |
+            JSON-объект, который позволяет передавать дополнительные параметры по операции и задавать определенные настройки в 
+            формате `ключ:значение`.
+
+            Максимальная длина для каждого передаваемого параметра:
+              * ключ — 20 знаков;
+              * значение — 100 знаков.
+
+            Максимальное количество пар `ключ:значение` — 20.
+
+            1. Если у терминала включена опция привязки клиента после 
+            успешной оплаты и передается параметр `CustomerKey`, в передаваемых 
+            параметрах `DATA` могут быть параметры метода **AddCustomer**. 
+            Если они есть, они автоматически привязываются к клиенту.
+
+            Например, если указать `"DATA":{"Phone":"+71234567890", "Email":"a@test.com"}`,
+            к клиенту автоматически будут привязаны данные электронной почты и телефон, 
+            и они будут возвращаться при вызове метода **GetCustomer**.
+
+            Для МСС 4814 обязательно передать значение в параметре `Phone`.
+            Требования по заполнению: 
+
+              * минимум — 7 символов,
+              * максимум — 20 символов,
+              * разрешены только цифры, исключение — первый символ может быть `+`.
+
+            Для МСС 6051 и 6050 обязательно передавать параметр `account` — номер электронного кошелька, не должен превышать 30 символов. 
+
+            Пример: `"DATA": {"account":"123456789"}`.
+
+            2. Если используется функционал сохранения карт на платежной форме, 
+            при помощи опционального параметра `DefaultCard` можно задать, 
+            какая карта будет выбираться по умолчанию. 
+
+                Возможные варианты:
+                
+                * Оставить платежную форму пустой. Пример:
+                
+                  ```
+                  "DATA":{"DefaultCard":"none"}
+                  ```
+                
+                * Заполнить параметр данными передаваемой карты. В этом случае передается `CardId`. Пример:
+                
+                  ```
+                   "DATA":{"DefaultCard":"894952"}
+                  ```
+                
+                * Заполнить параметр данными последней сохраненной карты. Применяется, если параметр `DefaultCard` не передан, 
+                передан с некорректным значением или в значении `null`.
+                По умолчанию возможность сохранение карт на платежной форме может быть отключена. Для активации обратитесь в 
+                техническую поддержку.
+
+            3. Если вы подключаете оплату через T‑Pay,
+            **ОБЯЗАТЕЛЬНО** передавайте параметры устройства, с которого будет осуществлен переход в объекте `Data`. 
+            Параметры устройства критично влияют на переход в приложение с устройств.
+            Пример:
+
+              ```
+              "DATA": {
+                "TinkoffPayWeb": "true",
+                "Device": "Desktop",
+                "DeviceOs": "iOS",
+                "DeviceWebView": "true",
+                "DeviceBrowser": "Safari"
+               }
+              ```
+
+            Рекомендации для заполнения поля `Device`:
+
+              * Mobile  — при оплате c мобильного устройства;
+              * Desktop — при оплате c десктопного устройства.
+
+            Рекомендации для заполнения поля `DeviceOs`:
+
+              * iOS,
+              * Android,
+              * macOS,
+              * Windows,
+              * Linux.
+
+            Рекомендации для заполнения поля `DeviceBrowser`:
+
+              * Chrome,
+              * Firefox,
+              * JivoMobile,
+              * Microsoft Edge,
+              * Miui,
+              * Opera,
+              * Safari,
+              * Samsung,
+              * WebKit,
+              * WeChat,
+              * Yandex.
+
+            4. Параметр `notificationEnableSource` позволяет отправлять нотификации, только если Source платежа входит в перечень
+            указанных в параметре — он также есть в параметрах сессии. Возможные значения — T‑Pay, sbpqr. Пример:
+
+             ```
+             notificationEnableSource=TinkoffPay
+             ``` 
+
+            5. Для привязки и одновременной оплаты по CБП передавайте параметр `QR = true`.
+
+            6. При передаче в объекте `DATA` атрибута `OperationInitiatorType` учитывайте взаимосвязь его значений:
+
+               * Со значением атрибута `Recurrent` в методе **/Init**.
+               * Со значением атрибута `RebillId` в методе **/Charge**.
+               * С типом терминала, который используется для проведения операций — ECOM/AFT.
+              
+              [Подробная таблица — передача признака инициатора операции](#section/Peredacha-priznaka-iniciatora-operacii)
+
+              Если передавать значения атрибутов, которые не соответствуют таблице, MAPI вернет ошибку 1126 —
+              несопоставимые значения `rebillId` или `Recurrent` с переданным значением `OperationInitiatorType`.
+          oneOf:
+            - $ref: '#/components/schemas/Common'
+            - $ref: '#/components/schemas/T-Pay'
+            - $ref: '#/components/schemas/LongPay'
+        Receipt:
+          description: JSON-объект с данными чека. Обязателен, если подключена онлайн-касса.
+          oneOf:
+            - $ref: '#/components/schemas/Receipt_FFD_105'
+            - $ref: '#/components/schemas/Receipt_FFD_12'
+        Shops:
+          type: array
+          description: JSON-объект с данными маркетплейса. Обязателен для маркетплейсов.
+          items:
+            $ref: '#/components/schemas/Shops'
+        Descriptor:
+          description: Динамический дескриптор точки.
+          type: string
+          example: '678451'
+    Response:
+      type: object
+      required:
+        - TerminalKey
+        - Amount
+        - OrderId
+        - Success
+        - PaymentId
+        - ErrorCode
+        - Status
+      properties:
+        TerminalKey:
+          description: |
+            Идентификатор терминала. Выдается мерчанту Т‑Кассой
+            при заведении терминала.
+          type: string
+          maxLength: 20
+          example: TinkoffBankTest
+        Amount:
+          description: |
+            Сумма в копейках.
+          type: number
+          maxLength: 20
+          example: 100000
+        OrderId:
+          description: |
+            Идентификатор заказа в системе мерчанта.
+          type: string
+          maxLength: 36
+          example: '21050'
+        Success:
+          description: |
+            Успешность прохождения запроса — `true`/`false`.
+          type: boolean
+          example: true
+        Status:
+          description: |
+            Статус транзакции.
+          type: string
+          maxLength: 20
+          example: NEW
+        PaymentId:
+          description: |
+            Идентификатор платежа в системе Т‑Кассы.
+          type: string
+          maxLength: 20
+          example: '13660'
+        ErrorCode:
+          description: |
+            Код ошибки. `0` в случае успеха.
+          type: string
+          maxLength: 20
+          example: '0'
+        PaymentURL:
+          description: |
+            Ссылка на платежную форму. Параметр возвращается только `для мерчантов без PCI DSS`.
+          type: string
+          format: uri
+          maxLength: 100
+          example: https://securepay.tinkoff.ru/rest/Authorize/1B63Y1
+        Message:
+          description: |
+            Краткое описание ошибки.
+          type: string
+          maxLength: 255
+          example: Неверные параметры
+        Details:
+          description: |
+            Подробное описание ошибки.
+          type: string
+          example: '0'
+    Items_Params:
+      type: object
+      description: Информация по способу оплаты или деталям для платежей в рассрочку.
+      properties:
+        Key:
+          type: string
+          description: |
+            Возможные значения:
+            * `Route` — способ оплаты.
+            * `Source` — источник платежа.
+            * `CreditAmount` — сумма выданного кредита в копейках. Возвращается только для платежей в рассрочку.
+          enum:
+            - Route
+            - Source
+            - CreditAmount
+        Value:
+          type: string
+          description: |
+            Возможные значения:
+            * `ACQ`, `BNPL`, `TCB`, `SBER` — для Route.
+            * `BNPL`, `cards`, `Installment`, `MirPay`, `qrsbp`, `SberPay`, `TinkoffPay`, `YandexPay` — для Source.
+            * Сумма в копейках — для CreditAmount.
+          enum:
+            - ACQ
+            - BNPL
+            - TCB
+            - SBER
+            - BNPL
+            - cards
+            - Installment
+            - MirPay
+            - qrsbp
+            - SberPay
+            - TinkoffPay
+            - YandexPay
+    GetState_FULL:
+      type: object
+      required:
+        - TerminalKey
+        - PaymentId
+        - Token
+      properties:
+        TerminalKey:
+          description: |
+            Идентификатор терминала. <br>
+            Выдается мерчанту Т‑Кассой при заведении терминала.
+          type: string
+          maxLength: 20
+          example: TinkoffBankTest
+        PaymentId:
+          description: |
+            Идентификатор платежа в системе Т‑Кассы.
+          type: string
+          maxLength: 20
+          example: '13660'
+        Token:
+          description: |
+            Подпись запроса.
+          type: string
+          example: 7241ac8307f349afb7bb9dda760717721bbb45950b97c67289f23d8c69cc7b96
+        IP:
+          description: |
+            IP-адрес клиента.
+          type: string
+          example: 192.168.0.52

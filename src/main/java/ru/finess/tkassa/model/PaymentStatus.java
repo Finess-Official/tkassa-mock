@@ -1,0 +1,31 @@
+package ru.finess.tkassa.model;
+
+import lombok.Getter;
+
+@Getter
+enum PaymentStatus {
+  NEW("NEW"),
+  FORM_SHOWED("FORM_SHOWED"),
+  AUTHORIZING("AUTHORIZING"),
+  DS_CHECKING("3DS_CHECKING"),
+  DS_CHECKED("3DS_CHECKED"),
+  AUTHORIZED("AUTHORIZED"),
+  CONFIRMING("CONFIRMING"),
+  CONFIRMED("CONFIRMED"),
+  REVERSING("REVERSING"),
+  PARTIAL_REVERSED("PARTIAL_REVERSED"),
+  REVERSED("REVERSED"),
+  REFUNDING("REFUNDING"),
+  PARTIAL_REFUNDED("PARTIAL_REFUNDED"),
+  REFUNDED("REFUNDED"),
+  CANCELED("CANCELED"),
+  DEADLINE_EXPIRED("DEADLINE_EXPIRED"),
+  REJECTED("REJECTED"),
+  AUTH_FAIL("AUTH_FAIL");
+
+  private final String status;
+
+  PaymentStatus(String status) {
+    this.status = status;
+  }
+}
