@@ -7,4 +7,4 @@ finess:
       paymentForm:
         host: localhost
         port: 8081
-      paymentTransitionStrategy: RANDOM
+      paymentTransitionStrategy: HAPPY_PATH

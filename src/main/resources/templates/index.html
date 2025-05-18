@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оплата</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #f5f7f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .payment-container {
+            max-width: 450px;
+            width: 100%;
+        }
+
+        .bank-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .bank-logo img {
+            height: 60px;
+            width: auto;
+        }
+
+        .logo-circle {
+            width: 48px;
+            height: 48px;
+            background-color: #fcd34d;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 24px;
+        }
+
+        .bank-name {
+            margin-left: 8px;
+            font-weight: bold;
+            font-size: 24px;
+        }
+
+        .payment-card {
+            background-color: #ffffff;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .amount-section {
+            padding: 24px;
+            border-bottom: 1px solid #f3f4f6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .amount {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .amount-skeleton {
+            height: 32px;
+            width: 120px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            animation: pulse 1.5s infinite;
+        }
+
+        .chevron {
+            color: #9ca3af;
+            cursor: pointer;
+        }
+
+        .quick-pay {
+            padding: 24px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .t-pay-button {
+            background-color: #fedd2d;
+            color: black;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            width: 100%;
+            font-weight: 500;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+
+        .t-pay-button:hover {
+            background-color: #fbbf24;
+        }
+
+        .t-pay-label {
+            background-color: black;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        .card-payment {
+            padding: 24px;
+            background-color: #ffffff;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card-input {
+            width: 100%;
+            padding: 16px;
+            background-color: #ebf1f6;
+            border: 1px solid #dbeafe;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-size: 16px;
+        }
+
+        .card-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #bfdbfe;
+        }
+
+        .pay-button {
+            width: 100%;
+            padding: 16px;
+            background-color: #1f2937;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .pay-button:hover {
+            background-color: #374151;
+        }
+
+        .pay-button:disabled {
+            background-color: #777b84;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #ef4444;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .terms {
+            margin-top: 16px;
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .terms-link {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.6;
+            }
+            50% {
+                opacity: 0.3;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="payment-container">
+    <!-- Bank Logo -->
+    <div class="bank-logo">
+        <img src="https://cdn.tbank.ru/static/pfa-multimedia/images/e3283f8b-eeb6-4471-9ea7-965ff52435f1.svg" alt="Банк Логотип">
+    </div>
+
+    <!-- Payment Card -->
+    <div class="payment-card">
+        <!-- Amount Section -->
+        <div class="amount-section">
+            <div class="amount" id="amount-display">
+                <div class="amount-skeleton" id="amount-skeleton"></div>
+            </div>
+            <div class="chevron">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- Quick Payment Section -->
+        <div class="quick-pay">
+            <h2 class="section-title">Быстрая оплата</h2>
+            <button class="t-pay-button">
+                Оплатить с <span class="t-pay-label">T PAY</span>
+            </button>
+        </div>
+
+        <!-- Card Payment Section -->
+        <div class="card-payment">
+            <div class="section-header">
+                <h2 class="section-title">Оплата картой</h2>
+                <div class="chevron">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+            </div>
+
+            <input
+                    type="text"
+                    id="card-number"
+                    class="card-input"
+                    placeholder="Номер карты"
+                    hx-on:input="this.value = this.value.replace(/\D/g, '').replace(/(.{4})(?=.)/g, '$1 ').trim().substring(0, 19)"
+            />
+
+            <button
+                    id="pay-button"
+                    class="pay-button"
+                    hx-get="/payment/{id}/deeplink"
+                    hx-trigger="click"
+                    hx-on:htmx:after-request="if(event.detail.successful) window.location.href = JSON.parse(event.detail.xhr.response).deeplink"
+                    hx-indicator="#pay-button"
+                    hx-swap="none"
+            >
+                Оплатить
+            </button>
+
+            <div id="error-message" class="error-message"></div>
+
+            <div class="terms">
+                Нажимая «Оплатить», вы соглашаетесь<br>
+                <a href="#" class="terms-link">с условиями передачи данных</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Get payment ID from URL or use a default
+    const pathParts = window.location.pathname.split('/');
+    const paymentId = pathParts[pathParts.length - 1];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const amountDisplay = document.getElementById('amount-display');
+        const amountSkeleton = document.getElementById('amount-skeleton');
+        const payButton = document.getElementById('pay-button');
+        const errorMessage = document.getElementById('error-message');
+
+        // Replace {id} with actual payment ID in hx-get attributes
+        payButton.setAttribute('hx-get', `/payment/${paymentId}/deeplink`);
+
+        // Fetch payment amount using HTMX
+        // Fetch payment amount manually instead of using HTMX
+        fetch(`/payment/${paymentId}/amount`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("API Response:", data); // Debug log
+                amountSkeleton.style.display = 'none';
+                if (data && data.amount) {
+                    amountDisplay.innerHTML = `${data.amount} ₽`;
+                } else {
+                    amountDisplay.innerHTML = 'Error ₽';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching amount:', error);
+                amountSkeleton.style.display = 'none';
+                errorMessage.textContent = 'Не удалось загрузить сумму платежа';
+                amountDisplay.innerHTML = 'Error ₽';
+            });
+
+        // Card number validation
+        const cardNumberInput = document.getElementById('card-number');
+        cardNumberInput.addEventListener('input', function() {
+            errorMessage.textContent = '';
+
+            // Enable/disable pay button based on card number input
+            if (cardNumberInput.value.trim() === '') {
+                payButton.disabled = true;
+            } else {
+                payButton.disabled = false;
+            }
+        });
+
+        // Set initial button state
+        payButton.disabled = true;
+
+        // Handle payment button click status changes
+        payButton.addEventListener('htmx:beforeRequest', function() {
+            payButton.textContent = 'Обработка...';
+            payButton.disabled = true;
+        });
+
+        payButton.addEventListener('htmx:responseError', function() {
+            payButton.textContent = 'Оплатить';
+            payButton.disabled = false;
+            errorMessage.textContent = 'Ошибка при обработке платежа';
+        });
+    });
+</script>
+</body>
+</html>
