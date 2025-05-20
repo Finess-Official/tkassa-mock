@@ -1,11 +1,5 @@
 package ru.finess.tkassa;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import ru.finess.openapi.api.DefaultApiDelegate;
 import ru.finess.openapi.api.DefaultApiResponses;
 import ru.finess.openapi.model.GetState200Response;
@@ -16,6 +10,12 @@ import ru.finess.tkassa.model.New;
 import ru.finess.tkassa.model.PaymentState;
 import ru.tinkoff.kora.common.Component;
 import ru.tinkoff.kora.http.server.common.HttpServerResponseException;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.Function;
 
 @Component
 public class DefaultRestApi implements DefaultApiDelegate {
@@ -38,43 +38,27 @@ public class DefaultRestApi implements DefaultApiDelegate {
   private static final List<Function<PaymentState<?, ?>, PaymentState<?, ?>>>
       DEADLINE_EXPIRED_PATH = List.of(ERROR_TRANSITION);
 
-  private final ConcurrentHashMap<String, State> paymentStates = new ConcurrentHashMap<>();
-  private final AtomicInteger paymentIdSequence = new AtomicInteger(0);
   private final MockConfiguration mockConfiguration;
+  private final InmemoryPaymentRepository paymentRepository;
 
-  public DefaultRestApi(MockConfiguration mockConfiguration) {
+  public DefaultRestApi(
+      MockConfiguration mockConfiguration, InmemoryPaymentRepository paymentRepository) {
     this.mockConfiguration = mockConfiguration;
-  }
-
-  record State(
-      PaymentState<?, ?> currentState,
-      List<Function<PaymentState<?, ?>, PaymentState<?, ?>>> stateTransitions,
-      int stateTransitionIndex) {
-
-    public boolean isFinal() {
-      return stateTransitionIndex >= stateTransitions.size();
-    }
-
-    public State nextState() {
-      Function<PaymentState<?, ?>, PaymentState<?, ?>> transition =
-          stateTransitions.get(stateTransitionIndex);
-      return new State(transition.apply(currentState), stateTransitions, stateTransitionIndex + 1);
-    }
+    this.paymentRepository = paymentRepository;
   }
 
   @Override
   public DefaultApiResponses.GetStateApiResponse getState(GetStateFULL getStateFULL)
       throws Exception {
     String paymentId = getStateFULL.paymentId();
-    State state = paymentStates.get(paymentId);
-    if (state == null) {
-      throw HttpServerResponseException.of(404, "Payment not found");
-    }
 
-    PaymentState<?, ?> currentState = state.currentState;
-    if (!state.isFinal()) {
-      state = state.nextState();
-      paymentStates.put(paymentId, state);
+    PaymentState<?, ?> currentState =
+        paymentRepository
+            .findState(paymentId)
+            .orElseThrow(() -> HttpServerResponseException.of(404, "Payment not found"));
+
+    if (!currentState.isFinal()) {
+      currentState = paymentRepository.nextState(paymentId).orElse(currentState);
     }
 
     GetState200Response response = currentState.toGetStateResponse();
@@ -83,7 +67,7 @@ public class DefaultRestApi implements DefaultApiDelegate {
 
   @Override
   public DefaultApiResponses.InitApiResponse init(InitFULL initFULL) throws Exception {
-    String paymentId = String.valueOf(paymentIdSequence.incrementAndGet());
+    String paymentId = UUID.randomUUID().toString().substring(0, 20);
     New paymentState =
         new New(initFULL.terminalKey(), initFULL.amount(), initFULL.orderId(), paymentId);
 
@@ -94,10 +78,9 @@ public class DefaultRestApi implements DefaultApiDelegate {
           case DEADLINE_EXPIRED_PATH -> DEADLINE_EXPIRED_PATH;
           case RANDOM -> randomPath();
         };
-    paymentStates.put(paymentId, new State(paymentState, path, 0));
+    paymentRepository.save(paymentState, path);
 
     Response response = paymentState.toResponse(createPaymentFormLink());
-
     return new DefaultApiResponses.InitApiResponse(response);
   }
 
